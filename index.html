@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Number Guessing Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <h1>🎯 Random Number Guessing Game</h1>
+
+    <p>I am thinking of a number between <b>1 and 100</b>.</p>
+    <p>Can you guess it?</p>
+    <select id="difficulty" onchange="changeDifficulty()">
+    <option value="10">Easy (1-10)</option>
+    <option value="50">Medium (1-50)</option>
+    <option value="100" selected>Hard (1-100)</option>
+</select>
+
+<br><br>
+
+<div class="progress">
+    <div id="bar"></div>
+</div>
+
+<p>❤️ Lives: <span id="lives">10</span></p>
+
+<p>🏆 Best Score: <span id="best">--</span></p>
+
+<p>📜 Guess History:</p>
+<div id="history"></div>
+
+<button onclick="toggleTheme()">🌙 Theme</button>
+
+    <input type="number" id="guessInput" placeholder="Enter your guess">
+
+    <br>
+
+    <button onclick="checkGuess()">Guess</button>
+    <button onclick="restartGame()">Restart</button>
+
+    <h2 id="message"></h2>
+
+    <p>Attempts: <span id="attempts">0</span></p>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
