@@ -1,113 +1,176 @@
 let max = 100;
-let randomNumber = Math.floor(Math.random() * max) + 1;
-
+let randomNumber = 0;
 let attempts = 0;
 let lives = 10;
 let timer = 0;
+let best = localStorage.getItem('bestScore');
+let gameActive = true;
+let guessedNumbers = new Set();
+let timerId;
 
-let best = localStorage.getItem("bestScore");
+const difficultyLives = { 10: 12, 50: 10, 100: 8 };
+const messageBox = document.getElementById('messageBox');
+const message = document.getElementById('message');
+const messageIcon = document.getElementById('messageIcon');
+const guessInput = document.getElementById('guessInput');
+const validationMessage = document.getElementById('validationMessage');
 
-if(best!=null)
-document.getElementById("best").innerHTML = best;
-
-setInterval(function(){
-
-    timer++;
-
-    document.getElementById("timer").innerHTML = timer;
-
-},1000);
-
-function checkGuess(){
-
-    let guess = Number(document.getElementById("guessInput").value);
-
-    if(guess<1 || guess>max){
-        message.innerHTML="Enter number between 1 and "+max;
-        return;
-    }
-
-    attempts++;
-    lives--;
-
-    document.getElementById("attempts").innerHTML=attempts;
-    document.getElementById("lives").innerHTML=lives;
-
-    document.getElementById("history").innerHTML+=guess+" ";
-
-    document.getElementById("bar").style.width=(lives*10)+"%";
-
-    if(guess==randomNumber){
-
-        message.innerHTML="🎉 YOU WIN!";
-
-        if(best==null || attempts<best){
-
-            localStorage.setItem("bestScore",attempts);
-
-            document.getElementById("best").innerHTML=attempts;
-
-        }
-
-        createConfetti();
-
-    }
-    else if(guess<randomNumber){
-
-        message.innerHTML="📉 Too Low";
-
-    }
-    else{
-
-        message.innerHTML="📈 Too High";
-
-    }
-
-    if(lives==0){
-
-        message.innerHTML="💀 Game Over! Number was "+randomNumber;
-
-    }
-
-    guessInput.value="";
-
+function updateBestScore() {
+  document.getElementById('best').textContent = best || '—';
 }
 
-function restartGame(){
+function updateTimer() {
+  document.getElementById('timer').textContent = timer;
+}
 
-    randomNumber=Math.floor(Math.random()*max)+1;
-    attempts=0;
-    lives=10;
-    timer=0;
-    document.getElementById("attempts").innerHTML=0;
-    document.getElementById("lives").innerHTML=10;
-    document.getElementById("timer").innerHTML=0;
-    document.getElementById("history").innerHTML="";
-    document.getElementById("message").innerHTML="";
-    document.getElementById("bar").style.width="100%";
+function updateProgress() {
+  const percentage = Math.max((lives / difficultyLives[max]) * 100, 0);
+  const bar = document.getElementById('bar');
+  const progressTrack = document.querySelector('.progress-track');
+  document.getElementById('lives').textContent = lives;
+  document.getElementById('attempts').textContent = attempts;
+  document.getElementById('progressCopy').textContent = `${lives} of ${difficultyLives[max]} lives`;
+  bar.style.width = `${percentage}%`;
+  bar.style.background = lives <= 2 ? 'linear-gradient(90deg, var(--danger), var(--pink))' : 'linear-gradient(90deg, var(--accent), #f2d26b)';
+  progressTrack.setAttribute('aria-valuemax', difficultyLives[max]);
+  progressTrack.setAttribute('aria-valuenow', lives);
 }
-function changeDifficulty(){
-    max=Number(document.getElementById("difficulty").value);
-    restartGame();
+
+function setMessage(text, type = 'normal', icon = '✦') {
+  message.textContent = text;
+  messageIcon.textContent = icon;
+  messageBox.className = `message-box${type === 'normal' ? '' : ` ${type}`}`;
 }
-function toggleTheme(){
-    document.body.classList.toggle("dark");
+
+function setValidation(text = '') {
+  validationMessage.textContent = text;
 }
-function createConfetti(){
-    for(let i=0;i<100;i++){
-        let c=document.createElement("div");
-        //c.innerHTML="🎉";
-        c.style.position="fixed";
-        c.style.left=Math.random()*100+"%";
-        c.style.top="-20px";
-        c.style.fontSize="25px";
-        document.body.appendChild(c);
-        let fall=setInterval(function(){
-            c.style.top=(parseInt(c.style.top)+5)+"px";
-            if(parseInt(c.style.top)>700){
-                clearInterval(fall);
-                c.remove();
-            }
-        },30);
+
+function addHistory(guess, result) {
+  const history = document.getElementById('history');
+  const emptyHistory = history.querySelector('.empty-history');
+  if (emptyHistory) emptyHistory.remove();
+
+  const item = document.createElement('span');
+  item.className = `history-number ${result}`;
+  item.textContent = guess;
+  item.title = result === 'low' ? 'Too low' : result === 'high' ? 'Too high' : 'Correct guess';
+  history.appendChild(item);
+  document.getElementById('historyCount').textContent = guessedNumbers.size;
+}
+
+function checkGuess(event) {
+  if (event) event.preventDefault();
+  if (!gameActive) return;
+
+  const guess = Number(guessInput.value);
+  if (!Number.isInteger(guess) || guess < 1 || guess > max) {
+    setValidation(`Enter a whole number between 1 and ${max}.`);
+    guessInput.focus();
+    return;
+  }
+  if (guessedNumbers.has(guess)) {
+    setValidation('You already tried that number. Choose another.');
+    guessInput.select();
+    return;
+  }
+
+  setValidation('');
+  guessedNumbers.add(guess);
+  attempts += 1;
+  lives -= 1;
+  let result;
+
+  if (guess === randomNumber) {
+    result = 'win';
+    gameActive = false;
+    setMessage(`You found ${randomNumber} in ${attempts} attempt${attempts === 1 ? '' : 's'}!`, 'success', '✓');
+    if (best === null || attempts < Number(best)) {
+      best = String(attempts);
+      localStorage.setItem('bestScore', best);
+      setValidation('New personal best!');
     }
+    createConfetti();
+  } else if (guess < randomNumber) {
+    result = 'low';
+    setMessage('Too low. Look a little higher.', 'normal', '↑');
+  } else {
+    result = 'high';
+    setMessage('Too high. Bring it down a little.', 'normal', '↓');
+  }
+
+  addHistory(guess, result);
+  updateProgress();
+  updateBestScore();
+  guessInput.value = '';
+
+  if (lives === 0 && gameActive) {
+    gameActive = false;
+    setMessage(`Game over. The number was ${randomNumber}.`, 'danger', '×');
+    setValidation('Start a new round and try again.');
+  }
 }
+
+function restartGame() {
+  window.clearInterval(timerId);
+  randomNumber = Math.floor(Math.random() * max) + 1;
+  attempts = 0;
+  lives = difficultyLives[max];
+  timer = 0;
+  gameActive = true;
+  guessedNumbers = new Set();
+  document.getElementById('history').innerHTML = '<p class="empty-history">Your guesses will appear here.</p>';
+  document.getElementById('historyCount').textContent = '0';
+  guessInput.value = '';
+  guessInput.disabled = false;
+  document.querySelector('.guess-button').disabled = false;
+  setValidation('');
+  setMessage('A number is waiting to be discovered.');
+  updateTimer();
+  updateProgress();
+  timerId = window.setInterval(() => {
+    if (gameActive) {
+      timer += 1;
+      updateTimer();
+    }
+  }, 1000);
+  guessInput.focus();
+}
+
+function changeDifficulty() {
+  max = Number(document.getElementById('difficulty').value);
+  document.getElementById('rangeMax').textContent = max;
+  guessInput.max = max;
+  restartGame();
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const nextTheme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  root.dataset.theme = nextTheme;
+  localStorage.setItem('theme', nextTheme);
+  document.getElementById('themeIcon').textContent = nextTheme === 'dark' ? '☼' : '☾';
+}
+
+function createConfetti() {
+  const container = document.getElementById('confetti');
+  const colors = ['var(--accent)', 'var(--pink)', 'var(--blue)', '#f2d26b'];
+  container.innerHTML = '';
+  for (let index = 0; index < 36; index += 1) {
+    const piece = document.createElement('span');
+    piece.className = 'confetti-piece';
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.background = colors[index % colors.length];
+    piece.style.setProperty('--drift', `${Math.round((Math.random() - 0.5) * 220)}px`);
+    piece.style.animationDelay = `${Math.random() * 160}ms`;
+    container.appendChild(piece);
+  }
+  window.setTimeout(() => { container.innerHTML = ''; }, 1600);
+}
+
+document.getElementById('guessForm').addEventListener('submit', checkGuess);
+
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'light') toggleTheme();
+updateBestScore();
+restartGame();
