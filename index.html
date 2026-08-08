@@ -136,6 +136,17 @@
     <footer class="page-width site-footer"><span>Made for curious minds</span><i>·</i><span>HTML · CSS · JavaScript</span></footer>
     <div id="confetti" class="confetti" aria-hidden="true"></div>
 
+    <div class="caption-overlay" id="captionOverlay" hidden>
+      <section class="caption-dialog" role="dialog" aria-modal="true" aria-labelledby="captionTitle" aria-describedby="captionText">
+        <button class="caption-close" id="captionClose" type="button" aria-label="Close caption">×</button>
+        <span class="caption-spark" aria-hidden="true">✦</span>
+        <p class="caption-kicker">A little note for you</p>
+        <h2 id="captionTitle"></h2>
+        <p id="captionText"></p>
+        <button class="caption-action" id="captionAction" type="button">Keep playing <span aria-hidden="true">→</span></button>
+      </section>
+    </div>
+
     <script src="script.js"></script>
   </body>
 </html>
