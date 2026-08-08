@@ -71,7 +71,7 @@ function showWinCaption(isNewBest) {
   } else if (attempts <= Math.ceil(difficultyLives[max] * 0.5)) {
     showCaption('No second guessing. Just instinct.');
   } else {
-    showCaption("Sometimes your instinct needs a little time to find its way.<br />You stayed with it — and that's what matters. 🌱");
+    showCaption("Sometimes your instinct needs a little time to find its way.You stayed with it — and that's what matters. 🌱");
   }
 }
 
