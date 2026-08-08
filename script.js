@@ -14,6 +14,11 @@ const message = document.getElementById('message');
 const messageIcon = document.getElementById('messageIcon');
 const guessInput = document.getElementById('guessInput');
 const validationMessage = document.getElementById('validationMessage');
+const captionOverlay = document.getElementById('captionOverlay');
+const captionTitle = document.getElementById('captionTitle');
+const captionText = document.getElementById('captionText');
+const captionClose = document.getElementById('captionClose');
+const captionAction = document.getElementById('captionAction');
 
 function updateBestScore() {
   document.getElementById('best').textContent = best || '—';
@@ -44,6 +49,34 @@ function setMessage(text, type = 'normal', icon = '✦') {
 
 function setValidation(text = '') {
   validationMessage.textContent = text;
+}
+
+function showCaption(title, text, tone = 'success') {
+  captionTitle.textContent = title;
+  captionText.innerHTML = text;
+  captionOverlay.className = `caption-overlay ${tone}`;
+  captionOverlay.hidden = false;
+  document.body.classList.add('caption-is-open');
+  captionClose.focus();
+}
+
+function closeCaption() {
+  captionOverlay.hidden = true;
+  document.body.classList.remove('caption-is-open');
+}
+
+function showWinCaption(isNewBest) {
+  if (isNewBest || attempts === 1) {
+    showCaption('YOU KNEW SOMEHOW', 'Sometimes, instinct speaks before logic does.');
+  } else if (attempts <= Math.ceil(difficultyLives[max] * 0.5)) {
+    showCaption('No second guessing. Just instinct.');
+  } else {
+    showCaption("Sometimes your instinct needs a little time to find its way.<br />You stayed with it — and that's what matters. 🌱");
+  }
+}
+
+function showLossCaption() {
+  showCaption('Not every instinct is right.<br />Sometimes, listening means learning.', 'danger');
 }
 
 function addHistory(guess, result) {
@@ -84,13 +117,16 @@ function checkGuess(event) {
   if (guess === randomNumber) {
     result = 'win';
     gameActive = false;
+    let isNewBest = false;
     setMessage(`You found ${randomNumber} in ${attempts} attempt${attempts === 1 ? '' : 's'}!`, 'success', '✓');
     if (best === null || attempts < Number(best)) {
+      isNewBest = true;
       best = String(attempts);
       localStorage.setItem('bestScore', best);
       setValidation('New personal best!');
     }
     createConfetti();
+    showWinCaption(isNewBest);
   } else if (guess < randomNumber) {
     result = 'low';
     setMessage('Too low. Look a little higher.', 'normal', '↑');
@@ -108,10 +144,12 @@ function checkGuess(event) {
     gameActive = false;
     setMessage(`Game over. The number was ${randomNumber}.`, 'danger', '×');
     setValidation('Start a new round and try again.');
+    showLossCaption();
   }
 }
 
 function restartGame() {
+  closeCaption();
   window.clearInterval(timerId);
   randomNumber = Math.floor(Math.random() * max) + 1;
   attempts = 0;
@@ -169,6 +207,14 @@ function createConfetti() {
 }
 
 document.getElementById('guessForm').addEventListener('submit', checkGuess);
+captionClose.addEventListener('click', closeCaption);
+captionAction.addEventListener('click', closeCaption);
+captionOverlay.addEventListener('click', (event) => {
+  if (event.target === captionOverlay) closeCaption();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !captionOverlay.hidden) closeCaption();
+});
 
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme === 'light') toggleTheme();
